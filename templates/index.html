@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Prediksi Jenis Kelamin</title>
+    <!-- Menghubungkan Bootstrap -->
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* CSS untuk animasi */
+      #result-container {
+        transition: opacity 0.3s ease-in-out;
+        opacity: 0;
+      }
+
+      #result-container.show {
+        opacity: 1;
+      }
+
+      /* CSS untuk bar */
+      .gender-bar-container {
+        background-color: #e4d6d6;
+        position: relative;
+        transition: background-color 0.3s ease-in-out;
+      }
+
+      .gender-bar {
+        height: 40px;
+        width: 100%;
+        background-color: #e0e0e0;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        overflow: hidden;
+        transition: width 0.5s ease-in-out; /* Tambahkan transisi untuk perubahan lebar */
+      }
+
+      .bar {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.5s ease-in-out, background-color 0.3s ease-in-out;
+      }
+
+      .accuracy-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        padding: 2px 5px;
+        z-index: 1; /* Menempatkan teks di atas bar */
+        transition: opacity 0.3s ease-in-out; /* Tambahkan transisi opacity */
+        opacity: 0; /* Sembunyikan teks awalnya */
+      }
+
+      #result-container.show .accuracy-text {
+        opacity: 1; /* Tampilkan teks saat result-container ditampilkan */
+      }
+
+      .label {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        font-weight: bold;
+      }
+
+      .label-left {
+        left: -30px;
+      }
+
+      .label-right {
+        right: -30px;
+      }
+
+      .legend {
+        display: flex;
+        align-items: center;
+        margin-top: 10px;
+      }
+
+      .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        margin-right: 10px;
+      }
+
+      /* Custom CSS untuk alert agar colorfull dan futuristik */
+      /* Custom CSS untuk alert agar colorfull dan futuristik */
+      .alert-info {
+        color: #fff; /* Teks warna putih */
+        background-color: #673ab7; /* Warna latar belakang ungu lembut */
+        border-color: #512da8; /* Warna border */
+        border-radius: 8px; /* Sudut border */
+        padding: 15px; /* Padding untuk konten dalam alert */
+        margin-top: 20px; /* Jarak atas */
+        box-shadow: 0px 4px 6px rgba(103, 58, 183, 0.3); /* Shadow untuk efek elevasi */
+      }
+
+      .alert-info strong {
+        color: #fff; /* Teks warna putih */
+      }
+
+      .alert-info a {
+        color: #03a9f4; /* Warna biru cyan untuk link */
+      }
+
+      .alert-info a:hover {
+        color: #64b5f6; /* Warna biru muda saat hover */
+      }
+
+      .accuracy-info {
+        margin-bottom: 5px;
+      }
+
+      .accuracy {
+        font-weight: bold;
+        color: #4caf50; /* Warna sesuai dengan tema */
+      }
+
+      /* Custom CSS untuk alert hasil prediksi Dengan Tema Soft Color Greadient but futuristic */
+      .notif {
+        /* font hitam */
+        color: #000;
+        /* mepetin ke atas */
+        margin-top: -10px;
+      }
+    </style>
+    <script>
+      const csrfToken = "{{ csrf_token() }}";
+
+      // Fungsi untuk melakukan permintaan AJAX
+      function predictGender(name) {
+        fetch("/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken, // Tambahkan token CSRF ke header
+          },
+          body: JSON.stringify({ name: name }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            // Tampilkan hasil prediksi di elemen #result-container
+            const resultContainer = document.getElementById("result-container");
+            resultContainer.classList.add("show");
+
+            // Tampilkan bar untuk setiap model
+            for (const model in data) {
+              const modelData = data[model];
+              const modelBar = document.getElementById(`${model}-bar`);
+              modelBar.style.width = `${modelData.accuracies[0] * 100}%`;
+
+              // Tampilkan hasil prediksi di elemen .alert-result
+              const resultElement = document.querySelector(`.${model}_result`);
+
+              if (resultElement) {
+                resultElement.innerText =
+                  modelData.prediction === "L" ? "Laki-laki" : "Perempuan";
+              }
+
+              // Tambahkan teks informasi akurasi
+              const accuracyText = document.createElement("div");
+              accuracyText.classList.add("accuracy-text");
+              accuracyText.innerText = `${(
+                modelData.accuracies[0] * 100
+              ).toFixed(2)}%`;
+
+              // Periksa apakah elemen .accuracy-text sudah ada, jika ya, hapus sebelum menambahkan yang baru
+              const existingAccuracyText =
+                modelBar.querySelector(".accuracy-text");
+              if (existingAccuracyText) {
+                modelBar.removeChild(existingAccuracyText);
+              }
+
+              modelBar.appendChild(accuracyText);
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
+
+      // Tambahkan event listener untuk input
+      document.addEventListener("DOMContentLoaded", () => {
+        const nameInput = document.getElementById("name");
+        nameInput.addEventListener("input", (event) => {
+          // Ambil nilai input name
+          const name = event.target.value;
+          // Lakukan prediksi jika ada input yang dimasukkan
+          if (name.trim().length > 0) {
+            predictGender(name);
+          } else {
+            // Kosongkan hasil jika input kosong
+            const resultContainer = document.getElementById("result-container");
+            resultContainer.classList.remove("show");
+
+            // Kosongkan bar untuk setiap model
+            const models = [
+              "gradient_boosting",
+              "knn",
+              "logistic_regression",
+              "naive_bayes",
+              "random_forest",
+              "svm",
+            ];
+            models.forEach((model) => {
+              const modelBar = document.getElementById(`${model}-bar`);
+              modelBar.style.width = "0%";
+              // Hapus teks informasi akurasi
+              const accuracyText = modelBar.querySelector(".accuracy-text");
+              if (accuracyText) {
+                modelBar.removeChild(accuracyText);
+              }
+            });
+          }
+        });
+      });
+    </script>
+  </head>
+
+  <body>
+    <!-- Tambahkan elemen untuk menampilkan informasi akurasi -->
+    <div class="container mt-5">
+      <h1>Prediksi Jenis Kelamin</h1>
+      <div class="row">
+        <div class="col-md-6">
+          <!-- Input nama -->
+          <div class="form-group">
+            <label for="name">Masukkan nama:</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              class="form-control"
+              placeholder="Misalnya: Rudi"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+        <div class="col-md-6">
+          <!-- Informasi akurasi -->
+          <div id="info" class="float-right">
+            <div class="accuracy-info">
+              <span>Akurasi model Gradient Boosting:</span>
+              <span class="accuracy">63.84%</span>
+            </div>
+            <div class="accuracy-info">
+              <span
+                >Akurasi model K-Nearest Neighbors (dengan pencarian
+                grid):</span
+              >
+              <span class="accuracy">65.93%</span>
+            </div>
+            <div class="accuracy-info">
+              <span>Akurasi model Regresi Logistik:</span>
+              <span class="accuracy">81.05%</span>
+            </div>
+            <div class="accuracy-info">
+              <span>Akurasi model Naive Bayes:</span>
+              <span class="accuracy">81.70%</span>
+            </div>
+            <div class="accuracy-info">
+              <span>Akurasi model Random Forest:</span>
+              <span class="accuracy">74.23%</span>
+            </div>
+            <div class="accuracy-info">
+              <span>Akurasi model SVM:</span>
+              <span class="accuracy">80.87%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hasil prediksi -->
+      <div id="result-container">
+        <!-- Bar untuk setiap model -->
+        <div class="gender-bar-container">
+          <div
+            id="gradient_boosting-bar"
+            class="gender-bar"
+            style="background-color: #e57373"
+          >
+            <div class="bar" style="width: 0%"></div>
+            <div class="accuracy-text"></div>
+            <div class="label label-left">L</div>
+            <div class="label label-right">P</div>
+          </div>
+        </div>
+        <div class="notif alert-result">
+          <small>
+            <strong>Hasil Prediksi:</strong> Gradient Boosting memprediksi
+            <span class="gradient_boosting_result"></span>
+          </small>
+        </div>
+        <div class="gender-bar-container">
+          <div
+            id="knn-bar"
+            class="gender-bar"
+            style="background-color: #64b5f6"
+          >
+            <div class="bar" style="width: 0%"></div>
+            <div class="accuracy-text"></div>
+            <div class="label label-left">L</div>
+            <div class="label label-right">P</div>
+          </div>
+        </div>
+        <div class="notif alert-result">
+          <small>
+            <strong>Hasil Prediksi:</strong> K-Nearest Neighbors memprediksi
+            <span class="knn_result"></span>
+          </small>
+        </div>
+        <div class="gender-bar-container">
+          <div
+            id="logistic_regression-bar"
+            class="gender-bar"
+            style="background-color: #4db6ac"
+          >
+            <div class="bar" style="width: 0%"></div>
+            <div class="accuracy-text"></div>
+            <div class="label label-left">L</div>
+            <div class="label label-right">P</div>
+          </div>
+        </div>
+        <div class="notif alert-result">
+          <small>
+            <strong>Hasil Prediksi:</strong> Regresi Logistik memprediksi
+            <span class="logistic_regression_result"></span>
+          </small>
+        </div>
+        <div class="gender-bar-container">
+          <div
+            id="naive_bayes-bar"
+            class="gender-bar"
+            style="background-color: #ffb74d"
+          >
+            <div class="bar" style="width: 0%"></div>
+            <div class="accuracy-text"></div>
+            <div class="label label-left">L</div>
+            <div class="label label-right">P</div>
+          </div>
+        </div>
+        <div class="notif alert-result">
+          <small>
+            <strong>Hasil Prediksi:</strong> Naive Bayes memprediksi
+            <span class="naive_bayes_result"></span>
+          </small>
+        </div>
+        <div class="gender-bar-container">
+          <div
+            id="random_forest-bar"
+            class="gender-bar"
+            style="background-color: #9575cd"
+          >
+            <div class="bar" style="width: 0%"></div>
+            <div class="accuracy-text"></div>
+            <div class="label label-left">L</div>
+            <div class="label label-right">P</div>
+          </div>
+        </div>
+        <div class="notif alert-result">
+          <small>
+            <strong>Hasil Prediksi:</strong> Random Forest memprediksi
+            <span class="random_forest_result"></span>
+          </small>
+        </div>
+        <div class="gender-bar-container">
+          <div
+            id="svm-bar"
+            class="gender-bar"
+            style="background-color: #4caf50"
+          >
+            <div class="bar" style="width: 0%"></div>
+            <div class="accuracy-text"></div>
+            <div class="label label-left">L</div>
+            <div class="label label-right">P</div>
+          </div>
+        </div>
+        <div class="notif alert-result">
+          <small>
+            <strong>Hasil Prediksi:</strong> SVM memprediksi
+            <span class="svm_result"></span>
+          </small>
+        </div>
+        <!-- Legend untuk bar -->
+        <div class="legend">
+          <div class="legend-color" style="background-color: #e57373"></div>
+          <span>Gradient Boosting</span>
+          <div class="legend-color" style="background-color: #64b5f6"></div>
+          <span>KNN</span>
+          <div class="legend-color" style="background-color: #4db6ac"></div>
+          <span>Logistic Regression</span>
+          <div class="legend-color" style="background-color: #ffb74d"></div>
+          <span>Naive Bayes</span>
+          <div class="legend-color" style="background-color: #9575cd"></div>
+          <span>Random Forest</span>
+          <div class="legend-color" style="background-color: #4caf50"></div>
+          <span>SVM</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menghubungkan Bootstrap JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  </body>
+</html>
