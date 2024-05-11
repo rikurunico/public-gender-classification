@@ -218,6 +218,37 @@
             });
           }
         });
+        // Handle khusus untuk tombol backspace
+        nameInput.addEventListener("keydown", (event) => {
+          if (event.key === "Backspace") {
+            const name = event.target.value;
+            // Jika panjang input menjadi 0, kosongkan hasil
+            if (name.trim().length === 0) {
+              const resultContainer =
+                document.getElementById("result-container");
+              resultContainer.classList.remove("show");
+
+              // Kosongkan bar untuk setiap model
+              const models = [
+                "gradient_boosting",
+                "knn",
+                "logistic_regression",
+                "naive_bayes",
+                "random_forest",
+                "svm",
+              ];
+              models.forEach((model) => {
+                const modelBar = document.getElementById(`${model}-bar`);
+                modelBar.style.width = "0%";
+                // Hapus teks informasi akurasi
+                const accuracyText = modelBar.querySelector(".accuracy-text");
+                if (accuracyText) {
+                  modelBar.removeChild(accuracyText);
+                }
+              });
+            }
+          }
+        });
       });
     </script>
   </head>
